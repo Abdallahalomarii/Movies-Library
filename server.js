@@ -5,6 +5,8 @@ const express = require('express');
 
 const server = express();
 
+const cors = require('cors');
+
 const PORT = 3000;
 
 const status500 = {
@@ -18,16 +20,13 @@ const status404 = {
 };
 
 
-function Data() {
-    this.title = data.title;
-    this.poster_path = data.poster_path;
-    this.overview = data.overview;
-}
 
-const movie = new Data();
+server.use(cors()) ;
 
 server.get('/', (req, res) => {
-    res.send(JSON.stringify(movie));
+    const movie = new Data(data.title,data.poster_path,data.overview);
+
+    res.send(movie);
 })
 
 server.get('/favorite', (req, res) => {
@@ -46,6 +45,12 @@ server.use(function (req, res) {
     res.status(404).send(status404);
 });
 
+
+function Data(title,poster_path,overview) {
+    this.title = title;
+    this.poster_path = poster_path;
+    this.overview = overview;
+}
 
 server.use(function (error, req, res, next) {
     res.status(500).send(status500);
