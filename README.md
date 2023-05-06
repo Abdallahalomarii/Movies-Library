@@ -59,6 +59,8 @@
 
 ## - added 4 routes `/trending`,`/search`,`/discover`,`/list`
 
+## new route added `/getmovie`
+
 ## - used constructor to show data
 
 ### **tip** : you can use JSON Formatter chrome extensions tp see the data clearly
