@@ -1,15 +1,18 @@
-
+'use strict';
 const data = require('./Movie Data/data.json');
 const express = require('express');
 const server = express();
 const cors = require('cors');
 require('dotenv').config();
+const pg  = require('pg');
 
 server.use(cors());
 const PORT = 3000;
 const axios = require('axios');
 const apiKey = process.env.APIkey;
+server.use(express.json());
 
+const client = new pg.Client(process.env.DATABASE_URL);
 
 server.get('/', homeHandler)
 server.get('/favorite', favoriteHandler)
@@ -17,6 +20,8 @@ server.get('/trending', trendingHandler)
 server.get('/search', searchHandler)
 server.get('/discover', discoverHandler)
 server.get('/list', listHandler)
+server.get('/getmovie',getMovie)
+server.post('/addmovie',addMovie)
 server.get('*', defaultErrorHandler)
 server.use(error505Handler)
 
@@ -109,6 +114,31 @@ function listHandler(req, res) {
     }
 }
 
+function getMovie(req,res){
+    const sql = `SELECT * FROM MOVIE`;
+    client.query(sql)
+    .then(data=>{
+        res.send(data.rows);
+    })
+    .catch((error)=>{
+        error505Handler(error,req,res);
+    })
+}
+
+function addMovie(req,res){
+    const movie = req.body;
+    console.log(movie);
+    const sql = `INSERT INTO movie (moviename,yearofmovie,rate)
+    VALUES ($1,$2,$3);`;
+    const val = [movie.moviename,movie.yearofmovie,movie.rate];
+    client.query(sql,val)
+    .then(data=>{
+        res.send("the Data has been added successfully");
+    })
+    .catch((error)=>{
+        error505Handler(error,req,res);
+    })
+}
 function defaultErrorHandler(req, res) {
     res.status(404).send(status404);
 }
@@ -138,6 +168,9 @@ function error505Handler(error, req, res) {
     }
     res.status(500).send(err);
 }
-server.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+client.connect()
+.then(()=>{
+    server.listen(PORT, () => {
+        console.log(`Server listening on port ${PORT}`);
+    })
 })
