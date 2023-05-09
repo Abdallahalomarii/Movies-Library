@@ -4,7 +4,7 @@ const express = require('express');
 const server = express();
 const cors = require('cors');
 require('dotenv').config();
-const pg  = require('pg');
+const pg = require('pg');
 
 server.use(cors());
 const PORT = 3000;
@@ -20,8 +20,11 @@ server.get('/trending', trendingHandler)
 server.get('/search', searchHandler)
 server.get('/discover', discoverHandler)
 server.get('/list', listHandler)
-server.get('/getmovie',getMovie)
-server.post('/addmovie',addMovie)
+server.get('/getMovies', getMovieHandler)
+server.post('/addmovie', addMovieHandler)
+server.get('/getMovie', getMovieByIdHandler)
+server.delete('/DELETE/:id', deleteMovieHandler)
+server.put('/UPDATE/:id', updateMovieHandler)
 server.get('*', defaultErrorHandler)
 server.use(error505Handler)
 
@@ -33,6 +36,7 @@ function favoriteHandler(req, res) {
     res.send("Welcome to Favorite Page");
 }
 
+// API Handlers
 function trendingHandler(req, res) {
     const url = `https://api.themoviedb.org/3/trending/all/week?api_key=${apiKey}&language=en-US`
     try {
@@ -101,7 +105,7 @@ function listHandler(req, res) {
         axios.get(url)
             .then(resultData => {
                 let mapData = resultData.data.items.map(item => {
-                    let singleData = new Data(item.id, item.title,item.release_date, item.poster_path, item.overview, item.original_language, item.media_type, item.popularity)
+                    let singleData = new Data(item.id, item.title, item.release_date, item.poster_path, item.overview, item.original_language, item.media_type, item.popularity)
                     return singleData;
                 })
                 res.send(mapData);
@@ -114,31 +118,77 @@ function listHandler(req, res) {
     }
 }
 
-function getMovie(req,res){
+// DataBase  Handlers
+
+function getMovieHandler(req, res) {
     const sql = `SELECT * FROM MOVIE`;
     client.query(sql)
-    .then(data=>{
-        res.send(data.rows);
-    })
-    .catch((error)=>{
-        error505Handler(error,req,res);
-    })
+        .then(data => {
+            res.send(data.rows);
+        })
+        .catch((error) => {
+            error505Handler(error, req, res);
+        })
 }
 
-function addMovie(req,res){
+function addMovieHandler(req, res) {
     const movie = req.body;
-    console.log(movie);
-    const sql = `INSERT INTO movie (moviename,yearofmovie,rate)
-    VALUES ($1,$2,$3);`;
-    const val = [movie.moviename,movie.yearofmovie,movie.rate];
-    client.query(sql,val)
-    .then(data=>{
-        res.send("the Data has been added successfully");
-    })
-    .catch((error)=>{
-        error505Handler(error,req,res);
-    })
+    const sql = `INSERT INTO movie (title,release_date,poster_path,overview)
+    VALUES ($1,$2,$3,$4);`;
+    const val = [movie.title, movie.release_date, movie.poster_path, movie.overview];
+    client.query(sql, val)
+        .then(data => {
+            res.send(`the Data has been added successfully`);
+            
+        })
+        .catch((error) => {
+            error505Handler(error, req, res);
+        })
 }
+
+function deleteMovieHandler(req, res) {
+    const { id } = req.params;
+    const sql = `DELETE FROM movie WHERE id = ${id}`;
+
+    client.query(sql)
+        .then(data => {
+            res.status(202).send(data);
+            console.log(`row with id: ${id} has been deleted`);
+        })
+        .catch((error) => {
+            error505Handler(error, req, res);
+        })
+}
+
+function updateMovieHandler(req, res) {
+    const { id } = req.params;
+    const { title, release_date, poster_path, overview } = req.body;
+    const sql = `UPDATE movie 
+    SET title=$1 , release_date=$2 , poster_path=$3, overview=$4
+     WHERE id = ${id}; `;
+    const updateVal = [title, release_date, poster_path, overview]
+    client.query(sql, updateVal)
+        .then(data => {
+            res.send(data.rows);
+        })
+        .catch((error) => {
+            error505Handler(error, req, res);
+        })
+
+}
+
+function getMovieByIdHandler(req, res) {
+    const id = req.query.id;
+    const sql = `SELECT * FROM movie WHERE id = ${id};`;
+    client.query(sql)
+        .then(data => {
+            res.send(data.rows);
+        })
+        .catch((error) => {
+            error505Handler(error, req, res);
+        })
+}
+
 function defaultErrorHandler(req, res) {
     res.status(404).send(status404);
 }
@@ -169,8 +219,8 @@ function error505Handler(error, req, res) {
     res.status(500).send(err);
 }
 client.connect()
-.then(()=>{
-    server.listen(PORT, () => {
-        console.log(`Server listening on port ${PORT}`);
+    .then(() => {
+        server.listen(PORT, () => {
+            console.log(`Server listening on port ${PORT}`);
+        })
     })
-})
