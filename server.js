@@ -135,11 +135,11 @@ function addMovieHandler(req, res) {
     const movie = req.body;
     const sql = `INSERT INTO movie (title,release_date,poster_path,overview,comments)
     VALUES ($1,$2,$3,$4,$5);`;
-    const val = [movie.title, movie.release_date, movie.poster_path, movie.overview,movie.comments];
+    const val = [movie.title, movie.release_date, movie.poster_path, movie.overview, movie.comments];
     client.query(sql, val)
         .then(data => {
             res.send(`the Data has been added successfully`);
-            
+
         })
         .catch((error) => {
             error505Handler(error, req, res);
@@ -148,12 +148,18 @@ function addMovieHandler(req, res) {
 
 function deleteMovieHandler(req, res) {
     const { id } = req.params;
-    const sql = `DELETE FROM movie WHERE id = ${id}`;
+    const sql = `DELETE FROM movie WHERE id = ${id} RETURNING *;`;
 
     client.query(sql)
         .then(data => {
-            res.status(202).send(data);
-            console.log(`row with id: ${id} has been deleted`);
+            const sql = "SELECT * FROM movie;";
+            client.query(sql)
+                .then(alldata => {
+                    res.send(alldata.rows);
+                })
+                .catch((error) => {
+                    error505Handler(error, req, res);
+                })
         })
         .catch((error) => {
             error505Handler(error, req, res);
@@ -162,14 +168,21 @@ function deleteMovieHandler(req, res) {
 
 function updateMovieHandler(req, res) {
     const { id } = req.params;
-    const { title, release_date, poster_path, overview } = req.body;
+    const { title, release_date, overview, comments } = req.body;
     const sql = `UPDATE movie 
-    SET title=$1 , release_date=$2 , poster_path=$3, overview=$4
-     WHERE id = ${id}; `;
-    const updateVal = [title, release_date, poster_path, overview]
+    SET title=$1 , release_date=$2 ,  overview=$3 ,comments=$4 
+     WHERE id = ${id} RETURNING *; `;
+    const updateVal = [title, release_date, overview, comments]
     client.query(sql, updateVal)
         .then(data => {
-            res.send(data.rows);
+            const sql = "SELECT * FROM movie;";
+            client.query(sql)
+                .then(alldata => {
+                    res.send(alldata.rows);
+                })
+                .catch((error) => {
+                    error505Handler(error, req, res);
+                })
         })
         .catch((error) => {
             error505Handler(error, req, res);
